@@ -1788,8 +1788,8 @@ test_md5_digest_weakness() {
         sleep 1
     " | nc -w 2 "$ip" 5060 2>/dev/null) || return
     
-    # Use word-boundary pattern to match 'MD5' but not 'MD5-sess' (RFC 7616 §4)
-    if echo "$response" | grep -qi 'algorithm=MD5\b' && ! echo "$response" | grep -qi 'algorithm=MD5-sess' && ! echo "$response" | grep -qi 'qop='; then
+    # Use POSIX ERE to match 'MD5' not followed by a dash, distinguishing MD5 from MD5-sess (RFC 7616 §4)
+    if echo "$response" | grep -qiE 'algorithm=MD5([^-]|$)' && ! echo "$response" | grep -qi 'qop='; then
         append_cve_finding "$ip" "WEAK-CRYPTO" "SIP Digest Uses MD5 Without qop (RFC 2617 §3.2)" \
             "MEDIUM" "Server issues MD5 challenge without qop parameter - susceptible to replay attacks; upgrade to SHA-256/qop=auth (RFC 7616)" \
             "sip://$ip:5060"
