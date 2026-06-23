@@ -1,0 +1,116 @@
+# Enhanced VoIP Security Framework Configuration
+
+# Global settings
+global:
+  timeout: 10
+  retry_count: 3
+  thread_pool_size: 5
+
+# Scan targets
+targets:
+  - name: "Primary PBX"
+    host: 192.168.1.100
+    port: 5060
+    protocol: SIP
+    enabled: true
+  
+  - name: "Secondary PBX"
+    host: 192.168.1.101
+    port: 5060
+    protocol: SIP
+    enabled: false
+
+# Authentication
+auth:
+  require_authorization: true
+  log_authorization: true
+  unauthorized_action: "abort"
+
+# Scanning options
+scanning:
+  cve_detection: true
+  credential_testing: true
+  rtp_analysis: true
+  tls_analysis: true
+  dos_testing: true
+  toll_fraud_assessment: true
+  fingerprinting: true
+
+# Credential testing
+credentials:
+  default_extensions:
+    - "100"
+    - "101"
+    - "110"
+    - "200"
+    - "2000"
+    - "8000"
+    - "admin"
+    - "operator"
+  
+  default_passwords:
+    - "1234"
+    - "password"
+    - "admin"
+    - "123456"
+    - ""
+  
+  test_methods:
+    - "sip_registration"
+    - "http_auth"
+    - "ssh_auth"
+    - "telnet_auth"
+    - "freeswitch_socket"
+
+# DoS testing
+dos_testing:
+  enabled: true
+  sip_flood_packets: 100
+  sip_flood_threads: 5
+  slowloris_duration: 30
+  udp_flood_duration: 10
+  udp_flood_rate: 1000
+
+# Reporting
+reporting:
+  formats:
+    - json
+    - html
+    - csv
+    - pdf
+  
+  include_sections:
+    - executive_summary
+    - detailed_findings
+    - remediation
+    - risk_assessment
+  
+  export_siem: true
+  siem_type: "syslog"
+  siem_server: "192.168.1.50"
+  siem_port: 514
+
+# Logging
+logging:
+  level: "INFO"
+  file: "logs/voip_scanner.log"
+  console: true
+  verbose: false
+
+# Compliance
+compliance:
+  frameworks:
+    - "HIPAA"
+    - "PCI-DSS"
+    - "SOX"
+    - "GDPR"
+  
+  include_in_report: true
+
+# Advanced options
+advanced:
+  network_capture: true
+  pcap_output: "results/capture.pcap"
+  save_raw_responses: true
+  parallelize_tests: true
+  max_connections: 50

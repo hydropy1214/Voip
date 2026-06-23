@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  voip-scanner:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: voip-scanner
+    environment:
+      - TARGET_IP=192.168.1.100
+      - SCAN_PROFILE=comprehensive
+      - AUTHORIZED=true
+    volumes:
+      - ./reports:/voip-scanner/reports
+      - ./logs:/voip-scanner/logs
+    ports:
+      - "9999:9999"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    networks:
+      - voip-network
+    restart: on-failure
+
+networks:
+  voip-network:
+    driver: bridge
