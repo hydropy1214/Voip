@@ -1,0 +1,63 @@
+# VoIP Security Assessment Profiles
+# Copy to profiles.yaml and customize for your environment
+
+profiles:
+  quick:
+    description: "Quick 5-minute scan"
+    duration: 300
+    tests:
+      - sip_fingerprint
+      - critical_cves
+    output_detail: minimal
+    
+  standard:
+    description: "Standard 30-minute comprehensive scan"
+    duration: 1800
+    tests:
+      - sip_fingerprint
+      - all_cves
+      - weak_credentials
+      - rtp_exposure
+      - tls_analysis
+    output_detail: standard
+    
+  comprehensive:
+    description: "Detailed 2-hour assessment"
+    duration: 7200
+    tests:
+      - sip_fingerprint
+      - all_cves
+      - weak_credentials
+      - brute_force_limited
+      - rtp_analysis
+      - tls_analysis
+      - dos_resilience
+      - configuration_audit
+      - call_routing_analysis
+    output_detail: detailed
+    
+  aggressive:
+    description: "Full exploitation test (requires explicit authorization)"
+    duration: 14400
+    tests:
+      - sip_fingerprint
+      - all_cves
+      - full_credential_brute_force
+      - rtp_hijacking_attempt
+      - tls_attack
+      - dos_attack
+      - call_injection
+      - configuration_extraction
+      - privilege_escalation
+      - backup_extraction
+    output_detail: complete
+    requires_authorization: true
+
+default_target:
+  port: 5060
+  timeout: 5
+  max_retries: 3
+  
+default_callbacks:
+  port: 9999
+  timeout: 30
