@@ -235,7 +235,7 @@ throttle_jobs() {
 # Check whether grep supports PCRE (-P flag); set GREP_PCRE accordingly.
 # Falls back to empty string so callers can safely use: grep $GREP_PCRE ...
 check_grep_pcre() {
-    if echo "" | grep -P "" &>/dev/null 2>&1; then
+    if echo "" | grep -P "" &>/dev/null; then
         GREP_PCRE="-P"
     else
         log_warn "grep -P (PCRE) not supported on this system; some regex patterns may be simplified"
@@ -437,7 +437,7 @@ extract_snmp_info() {
     
     # Try common SNMP community strings
     if command -v snmpwalk &> /dev/null; then
-        snmpwalk -v1 -c public "$ip" sysDescr.0 2>/dev/null | sed 's/.*STRING: //' || echo ""
+        snmpwalk -v1 -c public "$ip" sysDescr.0 2>/dev/null | sed 's/^.*STRING: //' || echo ""
     else
         echo ""
     fi
@@ -560,7 +560,7 @@ test_cve_2021_30461() {
     
     if echo "$response" | grep -q "VoIPmonitor"; then
         local version
-        version=$(echo "$response" | grep -oE 'version[^0-9]*[0-9]+\.[0-9]+' | grep -oE '[0-9]+\.[0-9]+' | head -1 || echo "unknown")
+        version=$(echo "$response" | sed -n 's/.*version[^0-9]*\([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p' | head -1 || echo "unknown")
         
         # Check if version < v24.61
         if [[ -n "$version" && $(echo "$version < 24.61" | bc 2>/dev/null || echo "1") -eq 1 ]]; then
@@ -624,7 +624,7 @@ test_cve_2020_12701() {
     
     if echo "$response" | grep -q "Asterisk"; then
         local version
-        version=$(echo "$response" | grep -oE "Asterisk[[:space:]]+[0-9.]+" | grep -oE "[0-9.]+" || echo "unknown")
+        version=$(echo "$response" | sed -n 's/.*Asterisk[[:space:]]*\([0-9][0-9.]*\).*/\1/p' | head -1 || echo "unknown")
         append_cve_finding "$ip" "CVE-2020-12701" "Asterisk SIP Info Disclosure" \
             "MEDIUM" "Asterisk version $version detected - leaking software version via SIP headers" \
             "sip://$ip:5060"
@@ -1788,7 +1788,8 @@ test_md5_digest_weakness() {
         sleep 1
     " | nc -w 2 "$ip" 5060 2>/dev/null) || return
     
-    if echo "$response" | grep -qi 'algorithm=MD5[^-]' && ! echo "$response" | grep -qi 'qop='; then
+    # Use word-boundary pattern to match 'MD5' but not 'MD5-sess' (RFC 7616 §4)
+    if echo "$response" | grep -qi 'algorithm=MD5\b' && ! echo "$response" | grep -qi 'algorithm=MD5-sess' && ! echo "$response" | grep -qi 'qop='; then
         append_cve_finding "$ip" "WEAK-CRYPTO" "SIP Digest Uses MD5 Without qop (RFC 2617 §3.2)" \
             "MEDIUM" "Server issues MD5 challenge without qop parameter - susceptible to replay attacks; upgrade to SHA-256/qop=auth (RFC 7616)" \
             "sip://$ip:5060"
