@@ -24,7 +24,7 @@ Comprehensive Bash framework combining all attack vectors and security assessmen
 
 - **Phase 3: Advanced Vulnerability & CVE Detection**
   - Nuclei integration with VoIP/SIP templates
-  - 15+ CVE-specific tests including:
+  - 30+ CVE-specific tests including:
     - CVE-2021-30461 (VoIPmonitor RCE)
     - CVE-2021-26260 (3CX Auth Bypass)
     - CVE-2020-9496 (OFBiz Auth Bypass)
@@ -54,19 +54,81 @@ Comprehensive Bash framework combining all attack vectors and security assessmen
   - Remediation timeline
   - Executive-level findings
 
+- **Phase 7: SIP Enumeration & Method Fuzzing** *(new in v3.0)*
+  - Test all SIP methods (OPTIONS, REGISTER, INVITE, SUBSCRIBE, NOTIFY, PUBLISH, INFO, UPDATE, REFER, MESSAGE)
+  - SIP user enumeration via response code differentiation (401 vs 403 vs 404)
+  - SIP server version disclosure detection
+  - Unauthenticated SUBSCRIBE/presence abuse detection
+  - Allow header analysis for dangerous methods
+
+- **Phase 8: Extension Scanning & User Enumeration** *(new in v3.0)*
+  - Scan common extension ranges (100–9999, operator, admin, guest)
+  - Voicemail access without PIN detection
+  - IVR bypass via extension 0
+  - Valid extension output report (results/valid_extensions.txt)
+
+- **Phase 9: RTP/RTCP Vulnerability Testing** *(new in v3.0)*
+  - RTCP information disclosure probe
+  - Wide RTP port exposure detection
+  - SRTP enforcement testing (unencrypted media acceptance)
+  - RTP Bleed-style stale session data leak detection
+
+- **Phase 10: Credential Harvesting & Authentication Bypass** *(new in v3.0)*
+  - SIP digest authentication bypass (empty credentials, null nonce)
+  - Registration hijacking attempt
+  - Call interception via unauthenticated REFER
+  - Expanded default credential testing (30+ credential pairs, ports 80/443/8080/8443)
+  - SIP digest weakness detection (MD5 algorithm, missing QoP)
+  - Asterisk Manager Interface (AMI) default credential testing
+
+- **Phase 11: Vendor-Specific Vulnerability Testing** *(new in v3.0)*
+  - **Cisco CUCM/IP Phone**: CVE-2021-1397 (SSRF), CVE-2020-3161 (RCE)
+  - **Avaya Aura**: CVE-2021-22502 (unauthenticated RCE)
+  - **Grandstream UCM6xxx**: CVE-2022-37397 (SQL injection), default credentials
+  - **Polycom**: CVE-2019-9222 (default credentials), API enumeration
+  - **Yealink**: CVE-2021-27561 (RCE), CVE-2021-21224 (default credentials)
+  - **Kamailio/OpenSIPS**: CVE-2019-15752, CVE-2021-25956, MI exposure
+  - **FreePBX/Sangoma**: CVE-2022-26272, CVE-2019-11334, REST API exposure
+  - **3CX PhoneSystem**: CVE-2021-26260, unauthenticated API, default credentials
+  - **Elastix/Issabel**: LFI via vtigercrm, legacy RCE vectors
+
 **Usage:**
 ```bash
 bash enterprise_voip_security_framework.sh
 ```
 
+**Target Input (choose one method):**
+
+1. **`targets.txt` (recommended)** - Create `targets.txt` in the same directory (auto-detected):
+   ```bash
+   echo "192.168.1.10" > targets.txt
+   echo "10.0.0.20" >> targets.txt
+   bash enterprise_voip_security_framework.sh
+   ```
+
+2. **Command-line argument** - Pass a file path as the first argument:
+   ```bash
+   bash enterprise_voip_security_framework.sh /path/to/my_targets.txt
+   ```
+
+3. **Legacy `shodan_ips.txt`** - Automatically used if `targets.txt` is absent:
+   ```bash
+   echo "192.168.1.10" > shodan_ips.txt
+   bash enterprise_voip_security_framework.sh
+   ```
+
+**Input File Priority:** explicit argument → `targets.txt` → `shodan_ips.txt`
+
 **Input Files:**
-- `shodan_ips.txt` - One IP per line (optional, for Phase 1-3)
+- `targets.txt` - One IP/hostname per line (preferred, auto-detected)
+- `shodan_ips.txt` - One IP per line (legacy fallback)
 - `asterisk_cdr.csv` - CDR data with columns: calldate, src_extension, dst_number, duration_seconds (optional, for Phase 4)
 
 **Output Files:**
 - `results/verified_voip_vulnerabilities.txt` - Detailed CVE findings
 - `results/service_fingerprints.json` - Service discovery data
-- `results/cve_findings.json` - Structured CVE results
+- `results/cve_findings.json` - Structured CVE results (all phases)
+- `results/valid_extensions.txt` - Enumerated SIP extensions (Phase 8)
 - `results/fraud_analysis.txt` - CDR fraud analysis
 - `results/hardening_config.txt` - Security configurations
 - `results/executive_summary.txt` - High-level assessment
@@ -74,8 +136,8 @@ bash enterprise_voip_security_framework.sh
 
 **Requirements:**
 - Bash 4.0+
-- Core utilities: awk, grep, sed, jq, python3
-- Optional (for extended features): masscan, nuclei, nmap, dig, curl, nc, hydra
+- Core utilities: awk, grep, sed, jq, python3, curl, nc
+- Optional (for extended features): masscan, nuclei, nmap, dig, hydra
 
 ---
 
@@ -216,12 +278,26 @@ The framework detects and tests for:
 | CVE-2021-26260 | 3CX Auth Bypass | Critical | 3CX PhoneSystem 16.0.x |
 | CVE-2020-9496 | OFBiz Auth Bypass | Critical | Apache OFBiz |
 | CVE-2019-11334 | FreePBX RCE | Critical | FreePBX < 14.0.3.18 |
+| CVE-2022-26272 | FreePBX RCE via Module Upload | Critical | FreePBX |
+| CVE-2021-22502 | Avaya Aura Unauthenticated RCE | Critical | Avaya Aura AES |
+| CVE-2020-3161 | Cisco IP Phone RCE | Critical | Cisco IP Phone |
+| CVE-2022-37397 | Grandstream UCM SQL Injection | Critical | Grandstream UCM6xxx |
+| CVE-2021-27561 | Yealink DM Platform Unauthenticated RCE | Critical | Yealink DM |
 | CVE-2020-12701 | Asterisk Info Disclosure | High | Asterisk < 16.16.0 |
 | CVE-2020-9496 | PJSIP Remote Crash | High | Asterisk (PJSIP) |
 | CVE-2021-21224 | Yealink Default Credentials | High | Yealink Devices |
 | CVE-2020-14871 | Asterisk DTLS-SRTP Disclosure | Medium | Asterisk |
 | CVE-2021-25956 | OpenSIPS SQL Injection | High | OpenSIPS |
 | CVE-2019-9222 | Polycom Default Credentials | High | Polycom PABX |
+| CVE-2021-43734 | Asterisk AMI Command Injection | High | Asterisk AMI |
+| CVE-2019-18610 | Asterisk AMI Privilege Escalation | High | Asterisk AMI |
+| CVE-2017-14099 | Asterisk PJSIP Redirect RCE | High | Asterisk PJSIP |
+| CVE-2019-15752 | Kamailio Memory Corruption | High | Kamailio |
+| CVE-2021-1397 | Cisco CUCM SSRF | High | Cisco CUCM |
+| CVE-2020-8515 | DrayTek Vigor RCE | Critical | DrayTek VoIP Gateway |
+| CVE-2019-19463 | FreePBX Auth Bypass | Medium | FreePBX UCP |
+| CVE-2020-16231 | OpenSIPS Memory Corruption | High | OpenSIPS |
+| CVE-2022-26652 | Kamailio KEMI Script Injection | High | Kamailio |
 | Log4Shell | Log4j RCE | Critical | Systems using Log4j |
 | CVE-2021-3156 | Sudo Privilege Escalation | High | Linux sudo |
 | CVE-2020-1938 | Tomcat Ghostcat | Critical | Apache Tomcat |
@@ -246,7 +322,11 @@ chmod +x cdr_fraud_analyzer.py
 
 3. **Prepare Input Data:**
 ```bash
-# Create IP list
+# Option 1 (recommended): Create targets.txt - auto-detected by the framework
+echo "192.168.1.10" > targets.txt
+echo "10.0.0.20" >> targets.txt
+
+# Option 2 (legacy): Create shodan_ips.txt (used if targets.txt is absent)
 echo "192.168.1.10" > shodan_ips.txt
 echo "10.0.0.20" >> shodan_ips.txt
 
@@ -374,7 +454,18 @@ For issues, vulnerabilities, or contributions:
 
 ## Version History
 
-### v2.0.0 (Current)
+### v3.0.0 (Current)
+- **targets.txt support**: Auto-detect `targets.txt` for multi-target input (one IP/hostname per line)
+- **Input priority**: explicit argument → `targets.txt` → `shodan_ips.txt`
+- **Phase 7**: SIP Enumeration & Method Fuzzing (all SIP methods, user enumeration, SUBSCRIBE abuse)
+- **Phase 8**: Extension Scanning & User Enumeration (30+ common extensions, voicemail, IVR bypass)
+- **Phase 9**: RTP/RTCP Vulnerability Testing (RTCP disclosure, SRTP enforcement, RTP Bleed)
+- **Phase 10**: Credential Harvesting & Auth Bypass (30+ credential pairs, AMI, digest weakness)
+- **Phase 11**: Vendor-Specific Testing (Cisco, Avaya, Grandstream, Polycom, Yealink, Kamailio, OpenSIPS, FreePBX, 3CX, Elastix)
+- **Expanded CVE database**: 30+ CVEs covering all major VoIP vendors
+- **New output**: `results/valid_extensions.txt` from extension scanning
+
+### v2.0.0
 - Unified all deliverables into single framework
 - Added 15+ CVE detection tests
 - Integrated fraud analysis
