@@ -775,21 +775,21 @@ test_sip_methods() {
     local ip="$1"
     local call_id="method-test-$(date +%s%N)"
 
-    # Probe each SIP method and record allowed/forbidden responses
+    # Probe each SIP method and record which ones receive non-405/501 responses
     for method in OPTIONS REGISTER INVITE SUBSCRIBE NOTIFY PUBLISH INFO UPDATE REFER MESSAGE; do
         local response
         response=$(timeout 3 bash -c "
-            printf 'OPTIONS sip:${ip} SIP/2.0\r\nVia: SIP/2.0/UDP scanner:5060;branch=z9hG4bK${call_id}\r\nMax-Forwards: 1\r\nTo: <sip:${ip}>\r\nFrom: <sip:probe@scanner>;tag=probe\r\nCall-ID: ${call_id}@scanner\r\nCSeq: 1 OPTIONS\r\nContact: <sip:scanner>\r\nContent-Length: 0\r\n\r\n'
+            printf '${method} sip:${ip} SIP/2.0\r\nVia: SIP/2.0/UDP scanner:5060;branch=z9hG4bK${call_id}\r\nMax-Forwards: 1\r\nTo: <sip:${ip}>\r\nFrom: <sip:probe@scanner>;tag=probe\r\nCall-ID: ${call_id}@scanner\r\nCSeq: 1 ${method}\r\nContact: <sip:scanner>\r\nContent-Length: 0\r\n\r\n'
             sleep 1
         " | nc -u -w 2 "$ip" 5060 2>/dev/null || true)
 
-        # If a method is not 405/501, flag it as potentially exploitable
+        # A non-405/501 response means the method is processed by the server
         if echo "$response" | grep -qE "^SIP/2\.0 (200|202|404|401|403)"; then
-            log_debug "SIP $method accepted by $ip"
+            log_debug "SIP $method processed by $ip"
         fi
     done
 
-    # Detect Allow header listing dangerous methods
+    # Detect Allow header listing dangerous methods via OPTIONS
     local options_response
     options_response=$(timeout 3 bash -c "
         printf 'OPTIONS sip:${ip} SIP/2.0\r\nVia: SIP/2.0/UDP scanner:5060;branch=z9hG4bKopts\r\nMax-Forwards: 1\r\nTo: <sip:${ip}>\r\nFrom: <sip:probe@scanner>;tag=probe\r\nCall-ID: opts@scanner\r\nCSeq: 1 OPTIONS\r\nContent-Length: 0\r\n\r\n'
@@ -1071,22 +1071,19 @@ test_srtp_enforcement() {
 
     # Send an INVITE with unencrypted SDP (no SRTP) and see if it's accepted
     local sdp_body
-    sdp_body=$(cat << 'SDP'
-v=0
+    sdp_body="v=0
 o=scanner 0 0 IN IP4 127.0.0.1
 s=Test
 c=IN IP4 127.0.0.1
 t=0 0
 m=audio 12345 RTP/AVP 0
-a=rtpmap:0 PCMU/8000
-SDP
-)
+a=rtpmap:0 PCMU/8000"
     local sdp_len=${#sdp_body}
 
     local response
     response=$(timeout 3 bash -c "
         printf 'INVITE sip:100@${ip} SIP/2.0\r\nVia: SIP/2.0/UDP scanner:5060;branch=z9hG4bKsrtp\r\nMax-Forwards: 1\r\nTo: <sip:100@${ip}>\r\nFrom: <sip:probe@scanner>;tag=srtp\r\nCall-ID: ${call_id}@scanner\r\nCSeq: 1 INVITE\r\nContact: <sip:probe@scanner>\r\nContent-Type: application/sdp\r\nContent-Length: ${sdp_len}\r\n\r\n'
-        printf '%s' '${sdp_body}'
+        printf '%s' \"${sdp_body}\"
         sleep 1
     " | nc -u -w 3 "$ip" 5060 2>/dev/null || true)
 
@@ -1330,7 +1327,7 @@ test_ami_default_credentials() {
         local response
         response=$(timeout 5 bash -c "
             sleep 0.5
-            printf 'Action: Login\r\nUsername: ${user}\r\nSecret: ${pass}\r\n\r\n'
+            printf 'Action: Login\r\nUsername: %s\r\nSecret: %s\r\n\r\n' '${user}' '${pass}'
             sleep 1
             printf 'Action: Logoff\r\n\r\n'
             sleep 0.5
@@ -1455,7 +1452,7 @@ test_grandstream_ucm() {
         # Test default admin:admin
         local auth_response
         auth_response=$(timeout 3 curl -s -u "admin:admin" "http://$ip/cgi-bin/api.values.get" 2>/dev/null || true)
-        if echo "$auth_response" | grep -qi '"response"\s*:\s*"success"'; then
+        if echo "$auth_response" | grep -qiP '"response"\s*:\s*"success"'; then
             append_cve_finding "$ip" "GRANDSTREAM-CREDS" "Grandstream Default Credentials Accepted" \
                 "CRITICAL" "Grandstream device on $ip accepts default admin:admin credentials" \
                 "http://$ip/"
@@ -2171,7 +2168,7 @@ phase6_executive_summary() {
         
         # Assessment Overview
         echo "ASSESSMENT OVERVIEW"
-        echo "═" * 70
+        printf '═%.0s' {1..70}; echo
         echo "Target Input File: $INPUT_FILE"
         echo "Total IPs Scanned: $([ -f "$INPUT_FILE" ] && wc -l < "$INPUT_FILE" || echo "0")"
         echo "Live Hosts Discovered: $([ -f "$LIVE_IPS_FILE" ] && wc -l < "$LIVE_IPS_FILE" || echo "0")"
@@ -2183,7 +2180,7 @@ phase6_executive_summary() {
         
         # Key Findings
         echo "KEY FINDINGS"
-        echo "═" * 70
+        printf '═%.0s' {1..70}; echo
         
         if [ -f "$CVE_FINDINGS" ]; then
             echo "Top 5 Vulnerabilities Detected:"
@@ -2196,7 +2193,7 @@ phase6_executive_summary() {
         
         # Risk Assessment
         echo "RISK ASSESSMENT"
-        echo "═" * 70
+        printf '═%.0s' {1..70}; echo
         local critical_count=$([ -f "$CVE_FINDINGS" ] && grep -c '"CRITICAL"' "$CVE_FINDINGS" || echo "0")
         
         if [ "$critical_count" -gt 0 ]; then
@@ -2210,7 +2207,7 @@ phase6_executive_summary() {
         
         # Compliance Status
         echo "COMPLIANCE RECOMMENDATIONS"
-        echo "═" * 70
+        printf '═%.0s' {1..70}; echo
         echo "✓ Implement TLS 1.2+ for all SIP signaling"
         echo "✓ Enable SRTP for media encryption"
         echo "✓ Deploy fail2ban with aggressive SIP protection"
@@ -2222,7 +2219,7 @@ phase6_executive_summary() {
         
         # Remediation Timeline
         echo "RECOMMENDED REMEDIATION TIMELINE"
-        echo "═" * 70
+        printf '═%.0s' {1..70}; echo
         echo "IMMEDIATE (within 24 hours):"
         echo "  - Patch critical vulnerabilities"
         echo "  - Disable anonymous SIP registration"
@@ -2241,7 +2238,7 @@ phase6_executive_summary() {
         
         # Generated Reports
         echo "GENERATED REPORTS"
-        echo "═" * 70
+        printf '═%.0s' {1..70}; echo
         echo "✓ verified_voip_vulnerabilities.txt    - Detailed CVE findings"
         echo "✓ service_fingerprints.json            - Identified services"
         echo "✓ cve_findings.json                    - Structured CVE data (all phases)"
@@ -2252,7 +2249,7 @@ phase6_executive_summary() {
         echo ""
         
         echo "NEXT STEPS"
-        echo "═" * 70
+        printf '═%.0s' {1..70}; echo
         echo "1. Review detailed findings in verified_voip_vulnerabilities.txt"
         echo "2. Prioritize critical CVE remediations"
         echo "3. Patch vendor-specific vulnerabilities identified in Phase 11"
