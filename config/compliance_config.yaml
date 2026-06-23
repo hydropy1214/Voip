@@ -1,0 +1,77 @@
+# Compliance Mapping for VoIP Security
+
+compliance_frameworks:
+  HIPAA:
+    description: "Health Insurance Portability and Accountability Act"
+    requirements:
+      - "Encrypt PHI in transit (TLS/SRTP)"
+      - "Implement access controls"
+      - "Maintain audit logs"
+      - "Perform regular security assessments"
+      - "Address vulnerabilities within 30 days"
+    applicable_tests:
+      - "tls_analysis"
+      - "credential_testing"
+      - "encryption_validation"
+      - "access_control_audit"
+  
+  PCI_DSS:
+    description: "Payment Card Industry Data Security Standard"
+    requirements:
+      - "Maintain secure configuration"
+      - "Protect cardholder data"
+      - "Implement firewall configuration"
+      - "Restrict access to cardholder data"
+      - "Implement strong cryptography"
+    applicable_tests:
+      - "cve_detection"
+      - "tls_analysis"
+      - "credential_testing"
+      - "dos_resilience"
+  
+  SOX:
+    description: "Sarbanes-Oxley Act"
+    requirements:
+      - "Maintain IT security controls"
+      - "Ensure data integrity"
+      - "Implement access controls"
+      - "Maintain audit trails"
+    applicable_tests:
+      - "fingerprinting"
+      - "credential_testing"
+      - "configuration_audit"
+      - "backup_verification"
+  
+  GDPR:
+    description: "General Data Protection Regulation"
+    requirements:
+      - "Implement data protection by design"
+      - "Encrypt personal data"
+      - "Implement access controls"
+      - "Maintain breach notification capability"
+    applicable_tests:
+      - "encryption_validation"
+      - "credential_testing"
+      - "rtp_security"
+      - "toll_fraud_assessment"
+
+cve_severity_mapping:
+  CRITICAL:
+    cvss_range: "9.0-10.0"
+    remediation_days: 1
+    escalation: true
+  
+  HIGH:
+    cvss_range: "7.0-8.9"
+    remediation_days: 3
+    escalation: true
+  
+  MEDIUM:
+    cvss_range: "5.0-6.9"
+    remediation_days: 14
+    escalation: false
+  
+  LOW:
+    cvss_range: "3.0-4.9"
+    remediation_days: 30
+    escalation: false
